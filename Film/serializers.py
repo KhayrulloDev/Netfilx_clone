@@ -8,10 +8,10 @@ from Film.models import Actor, Movie
 class ActorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Actor
-        fields = ('id', 'name', 'birthdate', 'gender')
+        fields = ('id', 'name', 'birthdate', 'gender')  # Make sure 'birthdate' is a valid field in the 'Actor' model
 
-    def validate_source(self, value):
-        if value > date(1950, 1, 1):
+    def validate_birthdate(self, value):
+        if value < date(1950, 1, 1):
             raise ValidationError(detail="Birthdate must be on or before January 1, 1950")
         return value
 
