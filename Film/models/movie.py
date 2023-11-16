@@ -7,3 +7,5 @@ class Movie(models.Model):
     year = models.IntegerField()
     imdb = models.FloatField()
     genre = models.CharField(max_length=50)
+
+    viewed = models.PositiveBigIntegerField(default=0)
