@@ -47,6 +47,45 @@ class MovieViewSet(ModelViewSet):
         return Response(serializer.data)
 
     @action(detail=True, methods=["POST"])
+    def add_actor(self, request, pk=None):
+        movie = self.get_object()
+        actor_name = request.data.get('name')
+        actor_birthdate = request.data.get('birthdate')
+        actor_gender = request.data.get('gender')
+
+        actor1 = Actor.objects.create(
+            name=actor_name,
+            birthdate=actor_birthdate,
+            gender=actor_gender
+        )
+        movie.actor.add(actor1)
+        movie.save()
+
+        serializer = MovieSerializer(movie)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["POST"])
+    def remove_actor(self, request, pk=None):
+        movie = self.get_object()
+        actor1 = request.data.get('name')
+        actor_birthdate = request.data.get('birthdate')
+        actor_gender = request.data.get('gender')
+
+        actor2 = movie.actor.filter(
+            name=actor1,
+            birthdate=actor_birthdate,
+            gender=actor_gender
+        ).first()
+
+        if actor2:
+            movie.actor.remove(actor2)
+            movie.save()
+
+            return Response({"message": "Actor removed successfully"}, status=200)
+        else:
+            return Response({"error": "Actor not found in the movie"}, status=404)
+
+    @action(detail=True, methods=["POST"])
     def viewed(self, request, *args, **kwargs):
         movie = self.get_object()
         with transaction.atomic():
@@ -63,7 +102,6 @@ class MovieViewSet(ModelViewSet):
         return Response(data=serializers.data)
 
 
-
 class ActorViewSet(ModelViewSet):
     queryset = Actor.objects.all()
     serializer_class = ActorSerializer
@@ -71,3 +109,17 @@ class ActorViewSet(ModelViewSet):
     @action(detail=False, methods=["GET"])
     def top(self, request, *args, **kwargs):
         pass
+
+
+class MovieActorAPIView(APIView):
+    def get(self, request, pk):
+        movie_id = self.kwargs['id']
+
+        try:
+            movie = Movie.objects.get(id=movie_id)
+            actors = movie.actor.all()
+            serializers = ActorSerializer(actors, many=True)
+            return Response(serializers.data, status=200)
+        except Movie.DoesNotExist:
+            return Response(data={"error": "Movie does not exists!!!"}, status=404)
+
