@@ -138,27 +138,28 @@ class MovieActorAPIView(APIView):
             return Response(data={"error": "Movie does not exists!!!"}, status=404)
 
 
-class CommentAPIView(APIView):
+class CommentViewSet(ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = (IsAuthenticated,)
 
-    @action(detail=True, methods=["GET"])
-    def get_commnet(self, request):
+    def get_queryset(self):
+        user = self.request.user
+        return Comment.objects.filter(user=user)
+
+    def create_comment(self, request, *args, **kwargs):
         user = request.user
-        comments = Comment.objects.filter(user=user)
-        serializer = CommentSerializer(comments, many=True)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        serializer = CommentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=user)
 
-    @action(detail=True, methods=["POST"])
-    def delete_comment(self, request, pk=None):
-        comments = Comment.objects.all()
-        comment = comments.filter(pk=pk).first()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        if comment:
-            comment.delete()
-            comment.save()
-
-            return Response({"success": "Comment successfully deleted"}, status=status.HTTP_204_NO_CONTENT)
-        else:
-            return Response({"error": "Comment does not exists!!!"}, status=status.HTTP_404_NOT_FOUND)
+    def destroy(self, request, *args, **kwargs):
+        commnent = self.get_object()
+        if commnent.user != request.user:
+            return Response({"error": "You do not have permission to delete this comment."},
+                            status=status.HTTP_403_FORBIDDEN)
+        commnent.delete()
+        commnent.save()
+        return Response({"success": "Comment successfully deleted"}, status=status.HTTP_204_NO_CONTENT)
